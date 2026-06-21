@@ -92,6 +92,10 @@ button {
   padding: 2.5rem 0 4rem;
 }
 
+.viewer-shell {
+  padding-top: 1rem;
+}
+
 .catalog-hero {
   display: grid;
   gap: 1rem;
@@ -219,6 +223,17 @@ h1 {
   flex-wrap: wrap;
 }
 
+.viewer-title {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.viewer-title strong {
+  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
 .flipbook-controls {
   display: flex;
   gap: 0.5rem;
@@ -249,7 +264,7 @@ h1 {
 .flipbook-stage {
   display: grid;
   place-items: center;
-  min-height: min(72vh, 720px);
+  min-height: min(78vh, 780px);
   padding: clamp(0.5rem, 2vw, 1rem);
   border-radius: var(--radius);
   background:
@@ -337,6 +352,10 @@ h1 {
     padding-top: 1.5rem;
   }
 
+  .viewer-shell {
+    padding-top: 0.6rem;
+  }
+
   .catalog-options {
     grid-template-columns: 1fr;
   }
@@ -356,7 +375,7 @@ h1 {
   }
 
   .flipbook-stage {
-    min-height: 68vh;
+    min-height: 72vh;
     align-items: start;
   }
 
