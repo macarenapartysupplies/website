@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catalogo de contorno | Macarena Party Supplies</title>
+  <link rel="stylesheet" href="../catalogos/shared/catalogos.css">
+</head>
+<body>
+  <header class="catalog-header">
+    <a class="catalog-logo" href="../catalogos/" aria-label="Volver a catalogos">
+      <img src="../Website%20-%20Source/assets/macarena-simplified.png" alt="Macarena Party Supplies">
+    </a>
+
+    <div class="catalog-header-actions">
+      <a class="catalog-button secondary" href="../catalogos/">Catalogos</a>
+      <a class="catalog-button" href="https://wa.me/5213330438386">Cotizar por WhatsApp</a>
+    </div>
+  </header>
+
+  <main class="catalog-shell">
+    <section class="catalog-hero">
+      <p class="eyebrow">Catalogo digital</p>
+      <h1>Contorno</h1>
+      <p>Consulta opciones de contorno, silueta y acabados para elegir el estilo de tu pedido.</p>
+    </section>
+
+    <section class="flipbook-panel" aria-label="Visor de catalogo de contorno">
+      <div class="flipbook-toolbar">
+        <span class="page-counter" id="pageCounter">0 / 0</span>
+        <div class="flipbook-controls">
+          <button type="button" id="prevPage" aria-label="Pagina anterior">‹</button>
+          <button type="button" id="nextPage" aria-label="Pagina siguiente">›</button>
+        </div>
+        <a class="catalog-button secondary" id="downloadPdf" href="../catalogos/pdfs/contorno.pdf">Descargar PDF</a>
+      </div>
+
+      <div class="flipbook-stage" id="flipbookStage">
+        <div class="catalog-status" id="catalogStatus">Preparando catalogo...</div>
+        <div class="flipbook" id="flipbook"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="catalog-footer">
+    <small>© 2026 Macarena Party Supplies</small>
+  </footer>
+
+  <script>
+    window.MPS_CATALOG = {
+      pdf: "../catalogos/pdfs/contorno.pdf"
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+  <script src="../catalogos/shared/flipbook.js" defer></script>
+</body>
+</html>
