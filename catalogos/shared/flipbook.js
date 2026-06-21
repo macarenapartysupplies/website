@@ -21,11 +21,15 @@ const els = {
 function setStatus(message, isError = false) {
   if (!els.status) return;
   els.status.hidden = false;
+  els.status.style.display = "grid";
   els.status.innerHTML = isError ? `<strong>No se pudo cargar el catalogo.</strong><br>${message}` : message;
 }
 
 function hideStatus() {
-  if (els.status) els.status.hidden = true;
+  if (!els.status) return;
+  els.status.hidden = true;
+  els.status.style.display = "none";
+  els.status.textContent = "";
 }
 
 function setControlsDisabled(disabled) {
