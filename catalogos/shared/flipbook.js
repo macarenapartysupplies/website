@@ -83,6 +83,54 @@ function buildSmartCartWhatsappText() {
   return lines.join("\n");
 }
 
+function showSmartCartBubble() {
+  if (!state.smartCart?.enabled || document.querySelector(".smart-cart-fab")) return;
+
+  const fab = document.createElement("button");
+  fab.type = "button";
+  fab.className = "smart-cart-fab";
+  fab.setAttribute("aria-label", "Abrir MPS Smart Cart");
+  fab.innerHTML = `
+    <span class="smart-cart-fab-icon" aria-hidden="true">MPS</span>
+    <span class="smart-cart-fab-text">Haz click para agregar tus preferencias</span>
+  `;
+
+  fab.addEventListener("click", openSmartCartPanel);
+  document.body.appendChild(fab);
+}
+
+function removeSmartCartBubble() {
+  document.querySelector(".smart-cart-fab")?.remove();
+  document.querySelector(".smart-cart-note")?.remove();
+}
+
+function showSmartCartNote(message) {
+  document.querySelector(".smart-cart-note")?.remove();
+
+  const note = document.createElement("div");
+  note.className = "smart-cart-note";
+  note.setAttribute("role", "status");
+  note.innerHTML = `
+    <strong>MPS SMART CART</strong>
+    <p>${message}</p>
+    <button type="button" aria-label="Cerrar mensaje">Entendido</button>
+  `;
+
+  note.querySelector("button").addEventListener("click", () => note.remove());
+  document.body.appendChild(note);
+}
+
+function openSmartCartPanel() {
+  if (!state.smartCart?.enabled) return;
+
+  if (state.currentPage <= 1) {
+    showSmartCartNote("Explora las páginas del catálogo y vuelve aquí cuando encuentres una opción que quieras guardar para tu pedido.");
+    return;
+  }
+
+  showSmartCartNote(`Estás en la página ${state.currentPage}. En el siguiente paso aquí guardaremos tus preferencias para esta opción.`);
+}
+
 function createSmartCartPrompt() {
   if (document.querySelector(".smart-cart-modal")) return;
 
@@ -93,7 +141,7 @@ function createSmartCartPrompt() {
   modal.setAttribute("aria-labelledby", "smartCartTitle");
   modal.innerHTML = `
     <div class="smart-cart-dialog">
-      <h2 id="smartCartTitle">SMART CART</h2>
+      <h2 id="smartCartTitle">MPS SMART CART</h2>
       <p>¿Te gustaría ir registrando tus preferencias del pedido conforme leas el catálogo?</p>
       <div class="smart-cart-actions">
         <button type="button" class="smart-cart-choice secondary" data-smart-cart="no">No</button>
@@ -121,6 +169,11 @@ function setSmartCartPreference(enabled) {
   state.smartCart = createSmartCartSession(enabled);
   saveSmartCartSession();
   document.querySelector(".smart-cart-modal")?.remove();
+  if (enabled) {
+    showSmartCartBubble();
+  } else {
+    removeSmartCartBubble();
+  }
 }
 
 function initSmartCartPrompt() {
@@ -128,6 +181,7 @@ function initSmartCartPrompt() {
   if (existing) {
     state.smartCart = existing;
     saveSmartCartSession();
+    showSmartCartBubble();
     return;
   }
 
