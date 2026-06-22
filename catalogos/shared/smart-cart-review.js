@@ -723,52 +723,98 @@ function formatDesign(value, customText = "") {
   return String(value) === "45" && customText ? `${label}: ${customText}` : label;
 }
 
+function val(value) {
+  return String(value || "").trim() || "undef";
+}
+
+function designCode(value, customText = "") {
+  if (!value) return "DES-undef";
+  if (String(value) === "45") return `DES-CUSTOM-${val(customText)}`;
+  return `DES-${String(value).padStart(2, "0")}`;
+}
+
+function materialCode(material) {
+  return materialKind(material) === "papel" ? "PAPEL" : "VINIL";
+}
+
+function fontText(text, font) {
+  return `${val(text)}(${font || "undef"})`;
+}
+
+function personFor(key) {
+  const info = answer("studentInfo");
+  const globalValues = info.values || {};
+  const globalFonts = info.fonts || {};
+  const person = cart.review.sameNameForAll ? {} : cart.review.packagePeople?.[key] || {};
+  return {
+    name: person.name || globalValues.name,
+    lastName: person.lastName || globalValues.lastName,
+    group: person.group || globalValues.group,
+    font: person.font || globalFonts.name,
+    lastNameFont: person.lastNameFont || globalFonts.lastName
+  };
+}
+
+function personCode(key) {
+  const person = personFor(key);
+  return `${fontText(person.name, person.font)}-${fontText(person.lastName, person.lastNameFont)}-${val(person.group)}`;
+}
+
+function addonPersonCode(key) {
+  return personCode(key);
+}
+
+function addonCode(label) {
+  const codes = {
+    "Tag para mochila": "TAG",
+    "Nombre en vinil (un color)": "VINIL1",
+    "Nombre en vinil (dos colores)": "VINIL2",
+    "Plantilla de nombre al contorno con personaje": "CONTORNO",
+    "Planilla escolar individual - papel": "PLANILLA-PAPEL",
+    "Planilla escolar individual - vinil": "PLANILLA-VINIL",
+    "Tira larga para cuaderno": "TIRA"
+  };
+  return codes[label] || label.toUpperCase();
+}
+
 function buildWhatsappText() {
   const lines = [
-    `PEDIDO DE: ${cart.review.orderName || "Sin nombre"}`,
+    `PEDIDO DE: ${val(cart.review.orderName)}`,
     "",
-    "Hola, quiero cotizar este pedido.",
-    `Catálogo: ${cart.catalog?.name || reviewConfig.name || "Catálogo"}`,
-    "",
-    `Punto de entrega: ${cart.review.deliveryPoint === "Otro" ? `Otro - ${cart.review.deliveryOther || "Sin especificar"}` : cart.review.deliveryPoint || "Sin definir"}`,
+    `ENTREGA: ${cart.review.deliveryPoint === "Otro" ? `OTRO-${val(cart.review.deliveryOther)}` : val(cart.review.deliveryPoint)}`,
     "",
     "Paquetes:"
   ];
 
   packageUnits().forEach((unit) => {
-    lines.push(`- ${unit.label}: ${formatDesign(cart.review.packageDesigns[unit.key] || defaultDesign(), cart.review.packageCustomDesigns?.[unit.key])}; Material: ${cart.review.packageMaterials[unit.key] || materialOptions[0]}`);
+    const design = cart.review.packageDesigns[unit.key] || defaultDesign();
+    const material = cart.review.packageMaterials[unit.key] || materialOptions[0];
+    const pencil = (answer("pencilLabels").items || []).find((item) => item.label === unit.label);
+    const pencilCode = pencil ? `-LAPIZ-${pencil.value.includes("Full") ? "FULL" : "MINI"}` : "";
+    lines.push(`${unit.baseLabel.replace("Paquete ", "PAQ")}-${designCode(design, cart.review.packageCustomDesigns?.[unit.key])}-MAT-${materialCode(material)}${pencilCode}-${personCode(unit.key)}`);
   });
 
-  const pencil = answer("pencilLabels").items || [];
-  if (pencil.length) {
-    lines.push("", "Etiquetas para lápiz:");
-    pencil.forEach((item) => lines.push(`- ${item.label}: ${item.value}`));
-  }
-
   lines.push("", "Complementos:");
-  Object.entries(cart.review.addons || {}).forEach(([key, value]) => {
-    const details = Object.entries(value)
-      .filter(([field]) => field !== "customDesign")
-      .map(([field, detail]) => `${field}: ${field === "design" ? formatDesign(detail, value.customDesign) : detail}`)
-      .join("; ");
-    lines.push(`- ${key}: ${details}`);
+  Object.keys(prices.addons).forEach((baseLabel) => {
+    addonUnits(baseLabel).forEach((unit) => {
+      const data = cart.review.addons?.[unit.key] || {};
+      if (baseLabel === "Tira larga para cuaderno") {
+      lines.push(`TIRA-DES-${val(data.designText)}-DATA-${val(data.text)}`);
+      return;
+      }
+
+      const parts = [addonCode(baseLabel)];
+      if (data.design) parts.push(designCode(data.design, data.customDesign));
+      if (data.font) parts.push(`FONT-${data.font}`);
+      if (data.type) parts.push(`TIPO-${val(data.type).toUpperCase().replaceAll(" ", "_")}`);
+      if (data.material) parts.push(`MAT-${materialCode(data.material)}`);
+      if (data.character) parts.push(`PERSONAJE-${val(data.character)}`);
+      parts.push(addonPersonCode(unit.key));
+      lines.push(parts.join("-"));
+    });
   });
 
   lines.push("", `Total estimado: ${money(calculateTotal())}`);
-
-  const info = answer("studentInfo");
-  lines.push("", "Datos:");
-  lines.push(`- Nombre: ${info.values?.name || ""} (${info.fonts?.name || "sin fuente"})`);
-  lines.push(`- Apellidos: ${info.values?.lastName || ""} (${info.fonts?.lastName || "sin fuente"})`);
-  lines.push(`- Grupo: ${info.values?.group || ""}`);
-  lines.push(`- Mismo nombre para todos: ${cart.review.sameNameForAll ? "Sí" : "No"}`);
-
-  if (!cart.review.sameNameForAll) {
-    Object.entries(cart.review.packagePeople || {}).forEach(([key, person]) => {
-      lines.push(`  • ${key}: ${person.name || ""} ${person.lastName || ""} - ${person.group || ""}`);
-    });
-  }
-
   return lines.join("\n");
 }
 
