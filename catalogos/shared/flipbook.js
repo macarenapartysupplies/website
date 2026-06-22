@@ -71,6 +71,26 @@ const smartCartProfiles = {
           "Planilla escolar individual - vinil",
           "Tira larga para cuaderno"
         ]
+      },
+      6: {
+        id: "pencilLabels",
+        title: "Etiqueta para lápiz",
+        help: "Elige el tipo de etiqueta para lápiz de cada paquete seleccionado.",
+        type: "packageLabelChoice",
+        sourceAnswerId: "package",
+        packages: ["Paquete 2", "Paquete 3", "Paquete 4"],
+        options: ["Etiqueta Mini", "Etiqueta Full Cover"]
+      },
+      7: {
+        id: "studentInfo",
+        title: "Datos para personalizar",
+        help: "Escribe los datos como quieres que aparezcan en tus etiquetas.",
+        type: "textFields",
+        fields: [
+          { id: "name", label: "Nombre", placeholder: "Nombre" },
+          { id: "lastName", label: "Apellidos", placeholder: "Apellidos" },
+          { id: "group", label: "Grupo", placeholder: "Grupo" }
+        ]
       }
     }
   },
@@ -84,11 +104,42 @@ function getSmartCartProfile() {
 }
 
 function getCurrentQuestion() {
-  return getSmartCartProfile().questions[state.currentPage] || null;
+  const question = getSmartCartProfile().questions[state.currentPage] || null;
+  return isQuestionAvailable(question) ? question : null;
 }
 
 function hasAnswerForQuestion(question) {
-  return Boolean(question && state.smartCart?.answers?.[question.id]);
+  if (!question) return false;
+
+  const answer = state.smartCart?.answers?.[question.id];
+  if (!answer) return false;
+
+  if (question.type === "packageLabelChoice") {
+    const targets = getPackageLabelTargets(question);
+    const answeredIds = new Set((answer.items || []).map((item) => item.id));
+    return targets.length > 0 && targets.every((target) => answeredIds.has(target.id));
+  }
+
+  return true;
+}
+
+function getPackageLabelTargets(question) {
+  const packageAnswer = state.smartCart?.answers?.[question.sourceAnswerId];
+  if (!packageAnswer?.items?.length) return [];
+
+  return packageAnswer.items
+    .filter((item) => question.packages.includes(item.label) && item.quantity > 0)
+    .flatMap((item) => Array.from({ length: item.quantity }, (_, index) => ({
+      id: `${item.label}-${index + 1}`.toLowerCase().replace(/\s+/g, "-"),
+      label: item.quantity > 1 ? `${item.label} #${index + 1}` : item.label,
+      package: item.label
+    })));
+}
+
+function isQuestionAvailable(question) {
+  if (!question) return false;
+  if (question.type !== "packageLabelChoice") return true;
+  return getPackageLabelTargets(question).length > 0;
 }
 
 function getCatalogName() {
@@ -155,7 +206,10 @@ function buildSmartCartWhatsappText() {
     answers.forEach((answer) => {
       if (answer.items?.length) {
         lines.push(`- ${answer.label}:`);
-        answer.items.forEach((item) => lines.push(`  • ${item.label} x${item.quantity}`));
+        answer.items.forEach((item) => {
+          const detail = item.quantity ? `${item.label} x${item.quantity}` : `${item.label}: ${item.value}`;
+          lines.push(`  • ${detail}`);
+        });
       } else {
         lines.push(`- ${answer.label}: ${answer.value}`);
       }
@@ -247,6 +301,55 @@ function renderMultiQuantityQuestion(question, savedAnswer) {
   `;
 }
 
+function renderPackageLabelQuestion(question, savedAnswer) {
+  const savedItems = savedAnswer.items || [];
+  const targets = getPackageLabelTargets(question);
+
+  return `
+    <div class="smart-cart-question-options">
+      ${targets.map((target) => {
+        const saved = savedItems.find((item) => item.id === target.id);
+        return `
+          <fieldset class="smart-cart-choice-group" data-target-id="${target.id}" data-target-label="${target.label}">
+            <legend>${target.label}</legend>
+            <div class="smart-cart-choice-buttons">
+              ${question.options.map((option) => `
+                <button type="button" class="smart-cart-option${saved?.value === option ? " selected" : ""}" data-value="${option}">${option}</button>
+              `).join("")}
+            </div>
+          </fieldset>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderTextFieldsQuestion(question, savedAnswer) {
+  const values = savedAnswer.values || {};
+  return `
+    <div class="smart-cart-text-fields">
+      ${question.fields.map((field) => `
+        <label>
+          <span>${field.label}</span>
+          <input type="text" name="${field.id}" value="${values[field.id] || ""}" placeholder="${field.placeholder || field.label}">
+        </label>
+      `).join("")}
+      <div class="smart-cart-name-preview" aria-live="polite">
+        <span>${values.name || "Nombre"}</span>
+        <strong>${values.lastName || "Apellidos"}</strong>
+        <small>${values.group || "Grupo"}</small>
+      </div>
+    </div>
+  `;
+}
+
+function renderQuestionBody(question, savedAnswer) {
+  if (question.type === "multiQuantity") return renderMultiQuantityQuestion(question, savedAnswer);
+  if (question.type === "packageLabelChoice") return renderPackageLabelQuestion(question, savedAnswer);
+  if (question.type === "textFields") return renderTextFieldsQuestion(question, savedAnswer);
+  return renderChoiceQuestion(question, savedAnswer);
+}
+
 function showQuestionPanel(question) {
   closeSmartCartPanel();
 
@@ -259,7 +362,7 @@ function showQuestionPanel(question) {
     <strong>MPS SMART CART</strong>
     <h3>${question.title}</h3>
     <p>${question.help}</p>
-    ${question.type === "multiQuantity" ? renderMultiQuantityQuestion(question, savedAnswer) : renderChoiceQuestion(question, savedAnswer)}
+    ${renderQuestionBody(question, savedAnswer)}
     <div class="smart-cart-note-actions">
       <button type="button" class="smart-cart-note-secondary" data-close>Después</button>
       <button type="button" data-save>Guardar</button>
@@ -294,6 +397,31 @@ function showQuestionPanel(question) {
     });
   }
 
+  if (question.type === "packageLabelChoice") {
+    note.querySelectorAll(".smart-cart-choice-group").forEach((group) => {
+      group.querySelectorAll(".smart-cart-option").forEach((button) => {
+        button.addEventListener("click", () => {
+          group.querySelectorAll(".smart-cart-option").forEach((item) => item.classList.remove("selected"));
+          button.classList.add("selected");
+        });
+      });
+    });
+  }
+
+  if (question.type === "textFields") {
+    const preview = note.querySelector(".smart-cart-name-preview");
+    const refreshPreview = () => {
+      const values = Object.fromEntries(Array.from(note.querySelectorAll(".smart-cart-text-fields input")).map((input) => [input.name, input.value.trim()]));
+      preview.querySelector("span").textContent = values.name || "Nombre";
+      preview.querySelector("strong").textContent = values.lastName || "Apellidos";
+      preview.querySelector("small").textContent = values.group || "Grupo";
+    };
+
+    note.querySelectorAll(".smart-cart-text-fields input").forEach((input) => {
+      input.addEventListener("input", refreshPreview);
+    });
+  }
+
   note.querySelector("[data-close]").addEventListener("click", () => note.remove());
   note.querySelector("[data-save]").addEventListener("click", () => {
     if (question.type === "multiQuantity") {
@@ -313,6 +441,56 @@ function showQuestionPanel(question) {
         page: state.currentPage,
         label: question.title,
         items
+      };
+      saveSmartCartSession();
+      note.remove();
+      updateSmartCartBubble();
+      return;
+    }
+
+    if (question.type === "packageLabelChoice") {
+      const items = Array.from(note.querySelectorAll(".smart-cart-choice-group"))
+        .map((group) => ({
+          id: group.dataset.targetId,
+          label: group.dataset.targetLabel,
+          value: group.querySelector(".smart-cart-option.selected")?.dataset.value || ""
+        }))
+        .filter((item) => item.value);
+
+      const expectedCount = note.querySelectorAll(".smart-cart-choice-group").length;
+      if (items.length !== expectedCount) {
+        showSmartCartNote("Elige una opción para cada paquete.");
+        return;
+      }
+
+      state.smartCart.answers[question.id] = {
+        page: state.currentPage,
+        label: question.title,
+        items
+      };
+      saveSmartCartSession();
+      note.remove();
+      updateSmartCartBubble();
+      return;
+    }
+
+    if (question.type === "textFields") {
+      const values = Object.fromEntries(Array.from(note.querySelectorAll(".smart-cart-text-fields input")).map((input) => [input.name, input.value.trim()]));
+      const value = question.fields
+        .map((field) => values[field.id])
+        .filter(Boolean)
+        .join(" ");
+
+      if (!value) {
+        showSmartCartNote("Escribe al menos un dato para guardarlo.");
+        return;
+      }
+
+      state.smartCart.answers[question.id] = {
+        page: state.currentPage,
+        label: question.title,
+        value,
+        values
       };
       saveSmartCartSession();
       note.remove();
