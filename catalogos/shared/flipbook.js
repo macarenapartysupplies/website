@@ -5,7 +5,8 @@ const state = {
   pageCount: 0,
   currentPage: 1,
   isRendering: false,
-  renderToken: 0
+  renderToken: 0,
+  smartCart: null
 };
 
 const els = {
@@ -19,6 +20,119 @@ const els = {
   counter: document.getElementById("pageCounter"),
   download: document.getElementById("downloadPdf")
 };
+
+const smartCartKey = `mps-smart-cart:${catalogConfig.id || catalogConfig.pdf || "catalog"}`;
+
+function getCatalogName() {
+  return catalogConfig.name || document.title.replace("| Macarena Party Supplies", "").trim() || "Catálogo";
+}
+
+function createSmartCartSession(enabled) {
+  return {
+    enabled,
+    catalog: {
+      id: catalogConfig.id || "catalog",
+      name: getCatalogName(),
+      pdf: catalogConfig.pdf || ""
+    },
+    currentPage: state.currentPage,
+    pageCount: state.pageCount,
+    answers: {},
+    selections: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function saveSmartCartSession() {
+  if (!state.smartCart) return;
+  state.smartCart.currentPage = state.currentPage;
+  state.smartCart.pageCount = state.pageCount;
+  state.smartCart.updatedAt = new Date().toISOString();
+  try {
+    sessionStorage.setItem(smartCartKey, JSON.stringify(state.smartCart));
+  } catch (error) {
+    // The catalog should keep working even if storage is unavailable.
+  }
+}
+
+function loadSmartCartSession() {
+  try {
+    const saved = sessionStorage.getItem(smartCartKey);
+    return saved ? JSON.parse(saved) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function buildSmartCartWhatsappText() {
+  const cart = state.smartCart || createSmartCartSession(false);
+  const lines = [
+    "Hola, quiero cotizar un pedido desde el catálogo.",
+    `Catálogo: ${cart.catalog.name}`,
+    `Página actual: ${cart.currentPage || state.currentPage} de ${cart.pageCount || state.pageCount || "?"}`
+  ];
+
+  if (cart.selections?.length) {
+    lines.push("", "Selecciones:");
+    cart.selections.forEach((selection) => {
+      lines.push(`- Pág. ${selection.page}: ${selection.label || selection.value || "Referencia guardada"}`);
+    });
+  }
+
+  return lines.join("\n");
+}
+
+function createSmartCartPrompt() {
+  if (document.querySelector(".smart-cart-modal")) return;
+
+  const modal = document.createElement("div");
+  modal.className = "smart-cart-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", "smartCartTitle");
+  modal.innerHTML = `
+    <div class="smart-cart-dialog">
+      <h2 id="smartCartTitle">SMART CART</h2>
+      <p>¿Te gustaría ir registrando tus preferencias del pedido conforme leas el catálogo?</p>
+      <div class="smart-cart-actions">
+        <button type="button" class="smart-cart-choice secondary" data-smart-cart="no">No</button>
+        <button type="button" class="smart-cart-choice" data-smart-cart="yes">Sí</button>
+      </div>
+    </div>
+  `;
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      setSmartCartPreference(false);
+    }
+  });
+
+  modal.querySelectorAll("[data-smart-cart]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setSmartCartPreference(button.dataset.smartCart === "yes");
+    });
+  });
+
+  document.body.appendChild(modal);
+}
+
+function setSmartCartPreference(enabled) {
+  state.smartCart = createSmartCartSession(enabled);
+  saveSmartCartSession();
+  document.querySelector(".smart-cart-modal")?.remove();
+}
+
+function initSmartCartPrompt() {
+  const existing = loadSmartCartSession();
+  if (existing) {
+    state.smartCart = existing;
+    saveSmartCartSession();
+    return;
+  }
+
+  createSmartCartPrompt();
+}
 
 function setStatus(message, isError = false) {
   if (!els.status) return;
@@ -124,6 +238,7 @@ async function renderViewer(pageNumber) {
     els.book.innerHTML = "";
     els.book.appendChild(spread);
     state.currentPage = safePage;
+    saveSmartCartSession();
     hideStatus();
   } catch (error) {
     showPdfFallback("Hubo un problema renderizando esta página.");
@@ -165,6 +280,7 @@ async function initCatalogViewer() {
     state.pdf = await pdfjsLib.getDocument(catalogConfig.pdf).promise;
     state.pageCount = state.pdf.numPages;
     await renderViewer(1);
+    initSmartCartPrompt();
   } catch (error) {
     showPdfFallback(`Verifica que el archivo exista en <code>${catalogConfig.pdf}</code>.`);
   }
@@ -214,5 +330,11 @@ window.addEventListener("keydown", (event) => {
     goToRelativePage(-1);
   }
 });
+
+window.MPSSmartCart = {
+  getSession: () => state.smartCart,
+  save: saveSmartCartSession,
+  buildWhatsappText: buildSmartCartWhatsappText
+};
 
 initCatalogViewer();
