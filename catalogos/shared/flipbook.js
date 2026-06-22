@@ -387,7 +387,7 @@ function renderMultiQuantityQuestion(question, savedAnswer) {
         const item = savedItems.find((saved) => saved.label === option);
         const quantity = item?.quantity || 0;
         return `
-          <div class="smart-cart-quantity-row${quantity > 0 ? " selected" : ""}" data-value="${option}" data-increment="${option === "Tira larga para cuaderno" ? 2 : 1}">
+          <div class="smart-cart-quantity-row${quantity > 0 ? " selected" : ""}" data-value="${option}" data-increment="1" data-minimum="${option === "Tira larga para cuaderno" ? 2 : 1}">
             <span>${option}</span>
             <div class="smart-cart-stepper">
               <button type="button" data-step="-1" aria-label="Quitar ${option}">-</button>
@@ -528,7 +528,12 @@ function showQuestionPanel(question) {
         const output = row.querySelector("strong");
         const current = Number(output.textContent) || 0;
         const increment = Number(row.dataset.increment) || 1;
-        const next = Math.max(0, current + (Number(button.dataset.step) * increment));
+        const minimum = Number(row.dataset.minimum) || 1;
+        const direction = Number(button.dataset.step);
+        let next = current + (direction * increment);
+        if (direction > 0 && current === 0) next = minimum;
+        if (direction < 0 && next < minimum) next = 0;
+        next = Math.max(0, next);
         output.textContent = String(next);
         row.classList.toggle("selected", next > 0);
       });

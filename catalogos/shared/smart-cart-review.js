@@ -15,6 +15,23 @@ const deliveryOptions = [
 
 const materialOptions = ["Papel adhesivo", "Vinil adhesivo", "Vinil laminado"];
 const schoolSheetTypes = ["Rectangular", "Circular", "Lápiz mini", "Lápiz full cover"];
+const prices = {
+  packages: {
+    "Paquete 1": { papel: 160, vinil: 240 },
+    "Paquete 2": { papel: 130, vinil: 200 },
+    "Paquete 3": { papel: 200, vinil: 290 },
+    "Paquete 4": { papel: 240, vinil: 360 }
+  },
+  addons: {
+    "Tag para mochila": 130,
+    "Nombre en vinil (un color)": 25,
+    "Nombre en vinil (dos colores)": 40,
+    "Plantilla de nombre al contorno con personaje": 180,
+    "Planilla escolar individual - papel": 80,
+    "Planilla escolar individual - vinil": 120,
+    "Tira larga para cuaderno": 70
+  }
+};
 const fonts = [
   { number: 1, name: "Arturo", family: "MPS Font 1" },
   { number: 2, name: "Blueberry", family: "MPS Font 2" },
@@ -46,6 +63,7 @@ function saveCart() {
   if (!cart) return;
   cart.updatedAt = new Date().toISOString();
   sessionStorage.setItem(reviewKey, JSON.stringify(cart));
+  updatePricePreview();
   updateWhatsappButton();
 }
 
@@ -120,6 +138,50 @@ function addonUnits(label) {
   return expandItems((answer("addons").items || []).filter((item) => item.label === label));
 }
 
+function money(value) {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 0
+  }).format(value);
+}
+
+function materialKind(material) {
+  return String(material || "").toLowerCase().includes("papel") ? "papel" : "vinil";
+}
+
+function calculatePriceLines() {
+  const lines = [];
+
+  packageUnits().forEach((unit) => {
+    const material = cart.review.packageMaterials?.[unit.key] || materialOptions[0];
+    const price = prices.packages[unit.baseLabel]?.[materialKind(material)] || 0;
+    lines.push({
+      label: `${unit.label} (${material})`,
+      quantity: 1,
+      unitPrice: price,
+      total: price
+    });
+  });
+
+  Object.entries(prices.addons).forEach(([label, price]) => {
+    const units = addonUnits(label);
+    if (!units.length) return;
+    lines.push({
+      label,
+      quantity: units.length,
+      unitPrice: price,
+      total: units.length * price
+    });
+  });
+
+  return lines;
+}
+
+function calculateTotal() {
+  return calculatePriceLines().reduce((sum, line) => sum + line.total, 0);
+}
+
 function designName(number) {
   const found = designCatalog.find((design) => String(design.number) === String(number));
   return found ? found.name : `Diseño ${number || ""}`.trim();
@@ -188,6 +250,36 @@ function renderDelivery() {
       </label>
     </section>
   `;
+}
+
+function renderPricePreview() {
+  const lines = calculatePriceLines();
+  return `
+    <section class="review-section review-total-section" id="pricePreview">
+      <h2>Total estimado</h2>
+      <div class="review-price-lines">
+        ${lines.map((line) => `
+          <div>
+            <span>${line.label}</span>
+            <small>${line.quantity} x ${money(line.unitPrice)}</small>
+            <strong>${money(line.total)}</strong>
+          </div>
+        `).join("") || "<p>No hay productos seleccionados.</p>"}
+      </div>
+      <footer>
+        <span>Total</span>
+        <strong data-total>${money(calculateTotal())}</strong>
+      </footer>
+    </section>
+  `;
+}
+
+function updatePricePreview() {
+  const target = document.getElementById("pricePreview");
+  if (!target) return;
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = renderPricePreview().trim();
+  target.replaceWith(wrapper.firstElementChild);
 }
 
 function renderPackages() {
@@ -526,6 +618,7 @@ function renderReview() {
     ${renderPackages()}
     ${renderPencilLabels()}
     ${renderAddons()}
+    ${renderPricePreview()}
     ${renderPersonalData()}
   `;
 
@@ -570,6 +663,8 @@ function buildWhatsappText() {
       .join("; ");
     lines.push(`- ${key}: ${details}`);
   });
+
+  lines.push("", `Total estimado: ${money(calculateTotal())}`);
 
   const info = answer("studentInfo");
   lines.push("", "Datos:");

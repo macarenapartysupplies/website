@@ -1026,6 +1026,50 @@ h1 {
   grid-column: 1 / -1;
 }
 
+.review-total-section {
+  background: #f7fff9;
+  border-color: #bfe8ce;
+}
+
+.review-price-lines {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.review-price-lines div,
+.review-total-section footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.review-price-lines span {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.review-price-lines small {
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.review-price-lines strong,
+.review-total-section footer strong {
+  color: #187246;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.review-total-section footer {
+  background: #e9f8f0;
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
 .review-name-preview strong {
   color: var(--color-text);
   font-size: 1.1rem;
@@ -1099,6 +1143,12 @@ h1 {
   .review-line,
   .review-name-editor {
     grid-template-columns: 1fr;
+  }
+
+  .review-price-lines div,
+  .review-total-section footer {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
   }
 
   .smart-cart-note {
