@@ -29,7 +29,7 @@ const smartCartProfiles = {
       2: {
         id: "deliveryPoint",
         title: "Punto de entrega preferido",
-        help: "Elige el punto que te resulte más cómodo para coordinar tu pedido.",
+        help: "Elige el punto de entrega que te resulte más cómodo para coordinar tu entrega.",
         type: "choice",
         options: [
           "Parques de Tesistán",
@@ -43,6 +43,34 @@ const smartCartProfiles = {
           label: "Otro",
           note: "Pueden aplicar costos adicionales"
         }
+      },
+      3: {
+        id: "package",
+        title: "Paquete",
+        help: "Selecciona el paquete o los paquetes que te interesan. Puedes elegir más de uno.",
+        note: "Puedes ver la distribución de etiquetas en las páginas 5 y 6.",
+        type: "multiQuantity",
+        options: [
+          "Paquete 1",
+          "Paquete 2",
+          "Paquete 3",
+          "Paquete 4"
+        ]
+      },
+      4: {
+        id: "addons",
+        title: "Complementos",
+        help: "Selecciona los complementos que te gustaría agregar a tu pedido.",
+        type: "multiQuantity",
+        options: [
+          "Tag para mochila",
+          "Nombre en vinil (un color)",
+          "Nombre en vinil (dos colores)",
+          "Plantilla de nombre al contorno con personaje",
+          "Planilla escolar individual - papel",
+          "Planilla escolar individual - vinil",
+          "Tira larga para cuaderno"
+        ]
       }
     }
   },
@@ -121,7 +149,12 @@ function buildSmartCartWhatsappText() {
   if (answers.length) {
     lines.push("", "Preferencias:");
     answers.forEach((answer) => {
-      lines.push(`- ${answer.label}: ${answer.value}`);
+      if (answer.items?.length) {
+        lines.push(`- ${answer.label}:`);
+        answer.items.forEach((item) => lines.push(`  • ${item.label} x${item.quantity}`));
+      } else {
+        lines.push(`- ${answer.label}: ${answer.value}`);
+      }
     });
   }
 
@@ -168,18 +201,12 @@ function showSmartCartNote(message) {
   document.body.appendChild(note);
 }
 
-function showQuestionPanel(question) {
+function closeSmartCartPanel() {
   document.querySelector(".smart-cart-note")?.remove();
+}
 
-  const savedAnswer = state.smartCart?.answers?.[question.id] || {};
-  const note = document.createElement("div");
-  note.className = "smart-cart-note smart-cart-question";
-  note.setAttribute("role", "dialog");
-  note.setAttribute("aria-label", question.title);
-  note.innerHTML = `
-    <strong>MPS SMART CART</strong>
-    <h3>${question.title}</h3>
-    <p>${question.help}</p>
+function renderChoiceQuestion(question, savedAnswer) {
+  return `
     <div class="smart-cart-question-options">
       ${question.options.map((option) => `
         <button type="button" class="smart-cart-option" data-value="${option}">${option}</button>
@@ -190,30 +217,107 @@ function showQuestionPanel(question) {
         <small>${question.other.note}</small>
       </label>
     </div>
+  `;
+}
+
+function renderMultiQuantityQuestion(question, savedAnswer) {
+  const savedItems = savedAnswer.items || [];
+  return `
+    <div class="smart-cart-question-options">
+      ${question.options.map((option) => {
+        const item = savedItems.find((saved) => saved.label === option);
+        const quantity = item?.quantity || 0;
+        return `
+          <div class="smart-cart-quantity-row${quantity > 0 ? " selected" : ""}" data-value="${option}">
+            <span>${option}</span>
+            <div class="smart-cart-stepper">
+              <button type="button" data-step="-1" aria-label="Quitar ${option}">-</button>
+              <strong>${quantity}</strong>
+              <button type="button" data-step="1" aria-label="Agregar ${option}">+</button>
+            </div>
+          </div>
+        `;
+      }).join("")}
+      ${question.note ? `<small class="smart-cart-question-note">${question.note}</small>` : ""}
+    </div>
+  `;
+}
+
+function showQuestionPanel(question) {
+  closeSmartCartPanel();
+
+  const savedAnswer = state.smartCart?.answers?.[question.id] || {};
+  const note = document.createElement("div");
+  note.className = "smart-cart-note smart-cart-question";
+  note.setAttribute("role", "dialog");
+  note.setAttribute("aria-label", question.title);
+  note.innerHTML = `
+    <strong>MPS SMART CART</strong>
+    <h3>${question.title}</h3>
+    <p>${question.help}</p>
+    ${question.type === "multiQuantity" ? renderMultiQuantityQuestion(question, savedAnswer) : renderChoiceQuestion(question, savedAnswer)}
     <div class="smart-cart-note-actions">
       <button type="button" class="smart-cart-note-secondary" data-close>Después</button>
       <button type="button" data-save>Guardar</button>
     </div>
   `;
 
-  note.querySelectorAll(".smart-cart-option").forEach((button) => {
-    if (savedAnswer.value === button.dataset.value) {
-      button.classList.add("selected");
-    }
+  if (question.type === "choice") {
+    note.querySelectorAll(".smart-cart-option").forEach((button) => {
+      if (savedAnswer.value === button.dataset.value) {
+        button.classList.add("selected");
+      }
 
-    button.addEventListener("click", () => {
-      note.querySelectorAll(".smart-cart-option").forEach((item) => item.classList.remove("selected"));
-      button.classList.add("selected");
-      note.querySelector(".smart-cart-other input").value = "";
+      button.addEventListener("click", () => {
+        note.querySelectorAll(".smart-cart-option").forEach((item) => item.classList.remove("selected"));
+        button.classList.add("selected");
+        note.querySelector(".smart-cart-other input").value = "";
+      });
     });
-  });
+  }
+
+  if (question.type === "multiQuantity") {
+    note.querySelectorAll("[data-step]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const row = button.closest(".smart-cart-quantity-row");
+        const output = row.querySelector("strong");
+        const current = Number(output.textContent) || 0;
+        const next = Math.max(0, current + Number(button.dataset.step));
+        output.textContent = String(next);
+        row.classList.toggle("selected", next > 0);
+      });
+    });
+  }
 
   note.querySelector("[data-close]").addEventListener("click", () => note.remove());
   note.querySelector("[data-save]").addEventListener("click", () => {
+    if (question.type === "multiQuantity") {
+      const items = Array.from(note.querySelectorAll(".smart-cart-quantity-row"))
+        .map((row) => ({
+          label: row.dataset.value,
+          quantity: Number(row.querySelector("strong").textContent) || 0
+        }))
+        .filter((item) => item.quantity > 0);
+
+      if (!items.length) {
+        showSmartCartNote("Elige al menos una opción para guardarla.");
+        return;
+      }
+
+      state.smartCart.answers[question.id] = {
+        page: state.currentPage,
+        label: question.title,
+        items
+      };
+      saveSmartCartSession();
+      note.remove();
+      showSmartCartNote("Listo, guardé tu selección.");
+      return;
+    }
+
     const selected = note.querySelector(".smart-cart-option.selected")?.dataset.value || "";
     const other = note.querySelector(".smart-cart-other input").value.trim();
     const value = other || selected;
-
     if (!value) {
       showSmartCartNote("Elige una opción o escribe otro punto de entrega para guardarlo.");
       return;
@@ -248,6 +352,11 @@ function updateSmartCartBubble() {
 }
 
 function openSmartCartPanel() {
+  if (document.querySelector(".smart-cart-note")) {
+    closeSmartCartPanel();
+    return;
+  }
+
   if (!state.smartCart?.enabled) {
     createSmartCartPrompt({ fromDisabledBubble: true });
     return;
@@ -426,6 +535,7 @@ async function renderViewer(pageNumber) {
     els.book.innerHTML = "";
     els.book.appendChild(spread);
     state.currentPage = safePage;
+    closeSmartCartPanel();
     saveSmartCartSession();
     updateSmartCartBubble();
     hideStatus();
