@@ -15,7 +15,7 @@ Coloca los archivos PDF en:
 - `catalogos/pdfs/personajes.pdf`
 - `catalogos/pdfs/contorno.pdf`
 
-Los visores usan PDF.js para renderizar las paginas y StPageFlip para la experiencia de flipbook.
+Los visores usan PDF.js para renderizar las paginas en un visor estandar con navegacion anterior/siguiente.
 
 ## Notas
 
