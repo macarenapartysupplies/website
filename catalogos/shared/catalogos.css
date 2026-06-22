@@ -87,7 +87,7 @@ button {
 }
 
 .catalog-shell {
-  width: min(1180px, calc(100% - 2rem));
+  width: min(1380px, calc(100% - 2rem));
   margin: 0 auto;
   padding: clamp(1rem, 3vh, 2.5rem) 0 4rem;
 }
@@ -148,10 +148,10 @@ h1 {
   position: relative;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  flex: 0 0 min(520px, calc((100% - 1rem) / 2));
-  min-width: min(420px, 82vw);
-  height: min(620px, calc(100svh - 190px));
-  min-height: 360px;
+  flex: 0 0 min(650px, calc((100% - 1rem) / 2));
+  min-width: min(540px, 86vw);
+  height: min(760px, calc(100svh - 165px));
+  min-height: 460px;
   padding: 0;
   border: 1px solid #f0dce7;
   border-radius: var(--radius);
@@ -292,7 +292,9 @@ h1 {
 }
 
 .flipbook {
-  width: 100%;
+  width: min(100%, 1120px);
+  display: grid;
+  place-items: center;
 }
 
 .pdf-spread {
@@ -313,12 +315,24 @@ h1 {
   max-width: 100%;
 }
 
+.flipbook .pdf-page-shell {
+  width: 100%;
+  height: 100%;
+  box-shadow: none;
+}
+
 .pdf-page-shell canvas {
   width: auto;
   max-width: 100%;
   height: auto;
   max-height: min(74vh, 760px);
   background: #fff;
+}
+
+.flipbook .pdf-page-shell canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 @keyframes catalogFade {
