@@ -1,3 +1,63 @@
+@font-face {
+  font-family: "MPS Font 1";
+  src: url("../fonts/Arturo.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "MPS Font 2";
+  src: url("../fonts/Blueberry.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "MPS Font 3";
+  src: url("../fonts/Chicken%20Pie.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "MPS Font 4";
+  src: url("../fonts/Hello%20Sunday.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "MPS Font 5";
+  src: url("../fonts/KGPerfectPenmanship.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "MPS Font 6";
+  src: url("../fonts/Magical%20Story.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "MPS Font 7";
+  src: url("../fonts/Saphira.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "MPS Font 8";
+  src: url("../fonts/Sugar%20Fruit.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "MPS Font 9";
+  src: url("../fonts/Time%20Zone.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "MPS Font 10";
+  src: url("../fonts/Take%20Print.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "MPS Font 11";
+  src: url("../fonts/Rosaline%20Signature.otf") format("opentype");
+}
+
+@font-face {
+  font-family: "MPS Font 12";
+  src: url("../fonts/Tuesday%20Lovely.otf") format("opentype");
+}
+
 :root {
   --color-primary: #e86aa3;
   --color-secondary: #6c5ce7;
@@ -701,6 +761,13 @@ h1 {
   gap: 0.6rem;
 }
 
+.smart-cart-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 0.72fr);
+  gap: 0.5rem;
+  align-items: end;
+}
+
 .smart-cart-text-fields label {
   display: grid;
   gap: 0.25rem;
@@ -711,13 +778,21 @@ h1 {
   font-weight: 800;
 }
 
-.smart-cart-text-fields input {
+.smart-cart-text-fields input,
+.smart-cart-font-select select {
   width: 100%;
   min-height: 2.35rem;
   padding: 0 0.75rem;
   border: 1px solid #f0dce7;
   border-radius: 999px;
+  background: #fff;
+  color: var(--color-text);
   font: inherit;
+}
+
+.smart-cart-font-select select {
+  cursor: pointer;
+  font-weight: 800;
 }
 
 .smart-cart-name-preview {
@@ -733,15 +808,13 @@ h1 {
 
 .smart-cart-name-preview span {
   color: var(--color-primary);
-  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   font-weight: 900;
 }
 
 .smart-cart-name-preview strong {
   color: var(--color-text);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
 }
 
 .smart-cart-name-preview small {
@@ -812,6 +885,10 @@ h1 {
     min-height: 32px;
     padding: 0.45rem 0.7rem;
     font-size: 0.78rem;
+  }
+
+  .smart-cart-field-row {
+    grid-template-columns: 1fr;
   }
 
   .catalog-shell {

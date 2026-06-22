@@ -23,6 +23,21 @@ const els = {
 
 const smartCartKey = `mps-smart-cart:${catalogConfig.id || catalogConfig.pdf || "catalog"}`;
 
+const mpsFonts = [
+  { number: 1, name: "Arturo", family: "MPS Font 1" },
+  { number: 2, name: "Blueberry", family: "MPS Font 2" },
+  { number: 3, name: "Chicken Pie", family: "MPS Font 3" },
+  { number: 4, name: "Hello Sunday", family: "MPS Font 4" },
+  { number: 5, name: "KG", family: "MPS Font 5" },
+  { number: 6, name: "Magical Story", family: "MPS Font 6" },
+  { number: 7, name: "Sapphira", family: "MPS Font 7" },
+  { number: 8, name: "Sugar Fruit", family: "MPS Font 8" },
+  { number: 9, name: "Time Zone", family: "MPS Font 9" },
+  { number: 10, name: "Take Print", family: "MPS Font 10" },
+  { number: 11, name: "Rosaline Signature", family: "MPS Font 11" },
+  { number: 12, name: "Tuesday Love", family: "MPS Font 12" }
+];
+
 const smartCartProfiles = {
   personajes: {
     questions: {
@@ -87,8 +102,8 @@ const smartCartProfiles = {
         help: "Escribe los datos como quieres que aparezcan en tus etiquetas.",
         type: "textFields",
         fields: [
-          { id: "name", label: "Nombre", placeholder: "Nombre" },
-          { id: "lastName", label: "Apellidos", placeholder: "Apellidos" },
+          { id: "name", label: "Nombre", placeholder: "Nombre", fontSelector: true },
+          { id: "lastName", label: "Apellidos", placeholder: "Apellidos", fontSelector: true },
           { id: "group", label: "Grupo", placeholder: "Grupo" }
         ]
       }
@@ -185,6 +200,43 @@ function loadSmartCartSession() {
   }
 }
 
+function getFontByNumber(number) {
+  return mpsFonts.find((font) => String(font.number) === String(number)) || mpsFonts[0];
+}
+
+function getDefaultFontNumber(fieldId) {
+  if (fieldId === "lastName") return 5;
+  return 1;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function formatTextFieldAnswer(answer) {
+  const values = answer.values || {};
+  const fonts = answer.fonts || {};
+  const parts = [];
+
+  if (values.name) {
+    parts.push(`${values.name} (${fonts.name || "sin fuente"})`);
+  }
+
+  if (values.lastName) {
+    parts.push(`${values.lastName} (${fonts.lastName || "sin fuente"})`);
+  }
+
+  if (values.group) {
+    parts.push(`Grupo: ${values.group}`);
+  }
+
+  return parts.join(", ");
+}
+
 function buildSmartCartWhatsappText() {
   const cart = state.smartCart || createSmartCartSession(false);
   const lines = [
@@ -210,6 +262,8 @@ function buildSmartCartWhatsappText() {
           const detail = item.quantity ? `${item.label} x${item.quantity}` : `${item.label}: ${item.value}`;
           lines.push(`  • ${detail}`);
         });
+      } else if (answer.type === "textFields") {
+        lines.push(`- ${answer.label}: ${formatTextFieldAnswer(answer)}`);
       } else {
         lines.push(`- ${answer.label}: ${answer.value}`);
       }
@@ -326,18 +380,34 @@ function renderPackageLabelQuestion(question, savedAnswer) {
 
 function renderTextFieldsQuestion(question, savedAnswer) {
   const values = savedAnswer.values || {};
+  const fonts = savedAnswer.fonts || {};
   return `
     <div class="smart-cart-text-fields">
-      ${question.fields.map((field) => `
-        <label>
-          <span>${field.label}</span>
-          <input type="text" name="${field.id}" value="${values[field.id] || ""}" placeholder="${field.placeholder || field.label}">
-        </label>
-      `).join("")}
+      ${question.fields.map((field) => {
+        const selectedFont = getFontByNumber(fonts[field.id] || getDefaultFontNumber(field.id));
+        return `
+          <div class="smart-cart-field-row">
+            <label>
+              <span>${field.label}</span>
+              <input type="text" name="${field.id}" value="${escapeHtml(values[field.id])}" placeholder="${field.placeholder || field.label}">
+            </label>
+            ${field.fontSelector ? `
+              <label class="smart-cart-font-select">
+                <span>Tipografía</span>
+                <select name="${field.id}Font">
+                  ${mpsFonts.map((font) => `
+                    <option value="${font.number}"${String(selectedFont.number) === String(font.number) ? " selected" : ""}>${font.number}. ${font.name}</option>
+                  `).join("")}
+                </select>
+              </label>
+            ` : ""}
+          </div>
+        `;
+      }).join("")}
       <div class="smart-cart-name-preview" aria-live="polite">
-        <span>${values.name || "Nombre"}</span>
-        <strong>${values.lastName || "Apellidos"}</strong>
-        <small>${values.group || "Grupo"}</small>
+        <span data-preview-field="name" style="font-family: '${getFontByNumber(fonts.name || 1).family}', cursive;">${escapeHtml(values.name) || "Nombre"}</span>
+        <strong data-preview-field="lastName" style="font-family: '${getFontByNumber(fonts.lastName || 5).family}', cursive;">${escapeHtml(values.lastName) || "Apellidos"}</strong>
+        <small data-preview-field="group">${escapeHtml(values.group) || "Grupo"}</small>
       </div>
     </div>
   `;
@@ -412,13 +482,19 @@ function showQuestionPanel(question) {
     const preview = note.querySelector(".smart-cart-name-preview");
     const refreshPreview = () => {
       const values = Object.fromEntries(Array.from(note.querySelectorAll(".smart-cart-text-fields input")).map((input) => [input.name, input.value.trim()]));
-      preview.querySelector("span").textContent = values.name || "Nombre";
-      preview.querySelector("strong").textContent = values.lastName || "Apellidos";
-      preview.querySelector("small").textContent = values.group || "Grupo";
+      const fonts = Object.fromEntries(Array.from(note.querySelectorAll(".smart-cart-font-select select")).map((select) => [select.name.replace("Font", ""), select.value]));
+      const namePreview = preview.querySelector('[data-preview-field="name"]');
+      const lastNamePreview = preview.querySelector('[data-preview-field="lastName"]');
+      namePreview.textContent = values.name || "Nombre";
+      namePreview.style.fontFamily = `'${getFontByNumber(fonts.name || 1).family}', cursive`;
+      lastNamePreview.textContent = values.lastName || "Apellidos";
+      lastNamePreview.style.fontFamily = `'${getFontByNumber(fonts.lastName || 5).family}', cursive`;
+      preview.querySelector('[data-preview-field="group"]').textContent = values.group || "Grupo";
     };
 
-    note.querySelectorAll(".smart-cart-text-fields input").forEach((input) => {
-      input.addEventListener("input", refreshPreview);
+    note.querySelectorAll(".smart-cart-text-fields input, .smart-cart-font-select select").forEach((control) => {
+      control.addEventListener("input", refreshPreview);
+      control.addEventListener("change", refreshPreview);
     });
   }
 
@@ -476,6 +552,7 @@ function showQuestionPanel(question) {
 
     if (question.type === "textFields") {
       const values = Object.fromEntries(Array.from(note.querySelectorAll(".smart-cart-text-fields input")).map((input) => [input.name, input.value.trim()]));
+      const fonts = Object.fromEntries(Array.from(note.querySelectorAll(".smart-cart-font-select select")).map((select) => [select.name.replace("Font", ""), select.value]));
       const value = question.fields
         .map((field) => values[field.id])
         .filter(Boolean)
@@ -489,8 +566,10 @@ function showQuestionPanel(question) {
       state.smartCart.answers[question.id] = {
         page: state.currentPage,
         label: question.title,
+        type: question.type,
         value,
-        values
+        values,
+        fonts
       };
       saveSmartCartSession();
       note.remove();
