@@ -22,7 +22,7 @@ function setStatus(message, isError = false) {
   if (!els.status) return;
   els.status.hidden = false;
   els.status.style.display = "grid";
-  els.status.innerHTML = isError ? `<strong>No se pudo cargar el catalogo.</strong><br>${message}` : message;
+  els.status.innerHTML = isError ? `<strong>No se pudo cargar el catálogo.</strong><br>${message}` : message;
 }
 
 function hideStatus() {
@@ -153,7 +153,7 @@ async function initCatalogViewer() {
 
   els.download.href = catalogConfig.pdf;
   setControlsDisabled(true);
-  setStatus("Cargando catalogo...");
+  setStatus("Cargando catálogo...");
 
   if (!window.pdfjsLib) {
     showPdfFallback("PDF.js no se cargo correctamente.");
