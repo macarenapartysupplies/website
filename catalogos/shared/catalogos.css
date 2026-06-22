@@ -965,6 +965,7 @@ h1 {
 }
 
 .review-field select,
+.review-field input,
 .review-line select,
 .review-line input,
 .review-name-editor select,
@@ -1011,6 +1012,14 @@ h1 {
 .review-name-preview {
   grid-column: 1 / -1;
   gap: 0.1rem;
+}
+
+.review-personalization-line {
+  grid-template-columns: minmax(11rem, 1fr) repeat(2, minmax(9rem, 0.9fr));
+}
+
+.review-target-preview {
+  grid-column: 1 / -1;
 }
 
 .review-name-preview strong {

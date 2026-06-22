@@ -92,7 +92,13 @@ function ensureReviewData() {
 
   addonUnits("Tira larga para cuaderno").forEach((unit) => {
     cart.review.addons[unit.key] = cart.review.addons[unit.key] || {};
-    cart.review.addons[unit.key].design = cart.review.addons[unit.key].design || onlyKnownDesign();
+    cart.review.addons[unit.key].designText = cart.review.addons[unit.key].designText || "";
+  });
+
+  personalizationTargets().forEach((target) => {
+    cart.review.packagePeople[target.key] = cart.review.packagePeople[target.key] || {};
+    cart.review.packagePeople[target.key].font = cart.review.packagePeople[target.key].font || answer("studentInfo").fonts?.name || 1;
+    cart.review.packagePeople[target.key].lastNameFont = cart.review.packagePeople[target.key].lastNameFont || answer("studentInfo").fonts?.lastName || 5;
   });
 }
 
@@ -241,12 +247,47 @@ function renderDesignAddon(label) {
       <article class="review-line">
         <strong>${unit.label}</strong>
         <label>
-          <span>Diseño</span>
-          <select data-path="addons.${unit.key}.design">${designOptions(data.design || onlyKnownDesign())}</select>
+          <span>Diseño escrito</span>
+          <input type="text" data-path="addons.${unit.key}.designText" value="${esc(data.designText)}" placeholder="Describe el diseño">
         </label>
       </article>
     `;
   }).join("");
+}
+
+function personalizationTargets() {
+  return [
+    ...packageUnits().map((unit) => ({ ...unit, label: `Paquete - ${unit.label}` })),
+    ...addonUnits("Nombre en vinil (un color)").map((unit) => ({ ...unit, label: `Nombre vinil un color - ${unit.label}` })),
+    ...addonUnits("Nombre en vinil (dos colores)").map((unit) => ({ ...unit, label: `Nombre vinil dos colores - ${unit.label}` })),
+    ...addonUnits("Planilla escolar individual - papel").map((unit) => ({ ...unit, label: `Planilla escolar - ${unit.label}` })),
+    ...addonUnits("Planilla escolar individual - vinil").map((unit) => ({ ...unit, label: `Planilla escolar - ${unit.label}` })),
+    ...addonUnits("Plantilla de nombre al contorno con personaje").map((unit) => ({ ...unit, label: `Planilla al contorno - ${unit.label}` }))
+  ];
+}
+
+function renderPersonalizationBlock(target, values) {
+  const person = cart.review.packagePeople[target.key] || {};
+  const name = person.name || values.name || "";
+  const lastName = person.lastName || values.lastName || "";
+  const group = person.group || values.group || "";
+  const font = person.font || answer("studentInfo").fonts?.name || 1;
+  const lastNameFont = person.lastNameFont || answer("studentInfo").fonts?.lastName || 5;
+
+  return `
+    <article class="review-line review-personalization-line">
+      <strong>${target.label}</strong>
+      <label><span>Nombre</span><input type="text" data-path="packagePeople.${target.key}.name" value="${esc(name)}"></label>
+      <label><span>Tipografía nombre</span><select data-path="packagePeople.${target.key}.font">${fontOptions(font)}</select></label>
+      <label><span>Apellidos</span><input type="text" data-path="packagePeople.${target.key}.lastName" value="${esc(lastName)}"></label>
+      <label><span>Tipografía apellidos</span><select data-path="packagePeople.${target.key}.lastNameFont">${fontOptions(lastNameFont)}</select></label>
+      <label><span>Grupo</span><input type="text" data-path="packagePeople.${target.key}.group" value="${esc(group)}"></label>
+      <div class="review-name-preview review-target-preview" data-target-preview="${target.key}">
+        <span>${esc(name) || "Nombre"}</span>
+        <strong>${esc(lastName) || "Apellidos"}</strong>
+      </div>
+    </article>
+  `;
 }
 
 function renderSchoolSheets() {
@@ -337,7 +378,6 @@ function renderPersonalData() {
   const info = answer("studentInfo");
   const values = info.values || {};
   const savedFonts = info.fonts || {};
-  const units = packageUnits();
 
   return `
     <section class="review-section">
@@ -373,17 +413,7 @@ function renderPersonalData() {
         </div>
       </div>
       <div class="review-list${cart.review.sameNameForAll ? " is-hidden" : ""}" id="packagePeople">
-        ${units.map((unit) => {
-          const person = cart.review.packagePeople[unit.key] || {};
-          return `
-            <article class="review-line">
-              <strong>${unit.label}</strong>
-              <label><span>Nombre</span><input type="text" data-path="packagePeople.${unit.key}.name" value="${esc(person.name || values.name)}"></label>
-              <label><span>Apellidos</span><input type="text" data-path="packagePeople.${unit.key}.lastName" value="${esc(person.lastName || values.lastName)}"></label>
-              <label><span>Grupo</span><input type="text" data-path="packagePeople.${unit.key}.group" value="${esc(person.group || values.group)}"></label>
-            </article>
-          `;
-        }).join("")}
+        ${personalizationTargets().map((target) => renderPersonalizationBlock(target, values)).join("")}
       </div>
     </section>
   `;
@@ -431,13 +461,33 @@ function refreshFontPreviews() {
   const info = answer("studentInfo");
   const nameFont = fonts.find((font) => String(font.number) === String(info.fonts?.name || 1));
   const lastFont = fonts.find((font) => String(font.number) === String(info.fonts?.lastName || 5));
-  reviewSummary.querySelector("[data-main-name]")?.style.setProperty("font-family", `'${nameFont.family}', cursive`);
-  reviewSummary.querySelector("[data-main-lastname]")?.style.setProperty("font-family", `'${lastFont.family}', cursive`);
+  const mainName = reviewSummary.querySelector("[data-main-name]");
+  const mainLastName = reviewSummary.querySelector("[data-main-lastname]");
+  if (mainName) {
+    mainName.textContent = info.values?.name || "Nombre";
+    mainName.style.setProperty("font-family", `'${nameFont.family}', cursive`);
+  }
+  if (mainLastName) {
+    mainLastName.textContent = info.values?.lastName || "Apellidos";
+    mainLastName.style.setProperty("font-family", `'${lastFont.family}', cursive`);
+  }
   reviewSummary.querySelectorAll("[data-font-preview]").forEach((preview) => {
     const key = preview.dataset.fontPreview;
     const selected = cart.review.addons?.[key]?.font || info.fonts?.name || 1;
     const font = fonts.find((item) => String(item.number) === String(selected)) || fonts[0];
     preview.style.fontFamily = `'${font.family}', cursive`;
+  });
+  reviewSummary.querySelectorAll("[data-target-preview]").forEach((preview) => {
+    const key = preview.dataset.targetPreview;
+    const person = cart.review.packagePeople?.[key] || {};
+    const targetNameFont = fonts.find((item) => String(item.number) === String(person.font || info.fonts?.name || 1)) || fonts[0];
+    const targetLastNameFont = fonts.find((item) => String(item.number) === String(person.lastNameFont || info.fonts?.lastName || 5)) || fonts[4];
+    const name = preview.querySelector("span");
+    const lastName = preview.querySelector("strong");
+    name.textContent = person.name || info.values?.name || "Nombre";
+    name.style.fontFamily = `'${targetNameFont.family}', cursive`;
+    lastName.textContent = person.lastName || info.values?.lastName || "Apellidos";
+    lastName.style.fontFamily = `'${targetLastNameFont.family}', cursive`;
   });
 }
 
@@ -523,7 +573,7 @@ async function loadDesignCatalog() {
     const response = await fetch("../catalogos/data/personajes-designs.json");
     designCatalog = await response.json();
   } catch (error) {
-    designCatalog = Array.from({ length: 44 }, (_, index) => ({
+    designCatalog = Array.from({ length: 45 }, (_, index) => ({
       number: index + 1,
       name: `Diseño ${index + 1}`
     }));

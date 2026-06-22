@@ -114,7 +114,7 @@ const smartCartProfiles = {
         type: "numberRange",
         label: "Diseño",
         min: 1,
-        max: 44,
+        max: 45,
         version: "version-1"
       }
     },
