@@ -4,13 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de personajes | Macarena Party Supplies</title>
-  <link rel="stylesheet" href="../catalogos/shared/catalogos.css?v=standard-viewer-1">
+  <link rel="stylesheet" href="../catalogos/shared/catalogos.css?v=compact-viewer-1">
 </head>
 <body>
   <header class="catalog-header">
     <a class="catalog-logo" href="../catalogos/" aria-label="Volver a catálogos">
       <img src="../Website%20-%20Source/assets/macarena-simplified.png" alt="Macarena Party Supplies">
     </a>
+
+    <span class="header-page-counter page-counter" id="pageCounter">0 / 0</span>
 
     <div class="catalog-header-actions">
       <a class="catalog-button secondary" href="../catalogos/">Catálogos</a>
@@ -20,22 +22,12 @@
 
   <main class="catalog-shell viewer-shell">
     <section class="flipbook-panel" aria-label="Visor de catálogo de personajes">
-      <div class="flipbook-toolbar">
-        <div class="viewer-title">
-          <strong>Catálogo de personajes</strong>
-          <span class="page-counter" id="pageCounter">0 / 0</span>
-        </div>
-        <div class="flipbook-controls">
-          <button type="button" id="prevPage" aria-label="Pagina anterior">&lt;</button>
-          <button type="button" id="nextPage" aria-label="Pagina siguiente">&gt;</button>
-        </div>
-        <a class="catalog-button secondary" id="downloadPdf" href="../catalogos/pdfs/personajes.pdf">Descargar PDF</a>
-      </div>
-
       <div class="flipbook-stage" id="flipbookStage">
         <div class="catalog-status" id="catalogStatus">Preparando catálogo...</div>
         <div class="flipbook" id="flipbook"></div>
       </div>
+
+      <a class="catalog-button secondary download-button" id="downloadPdf" href="../catalogos/pdfs/personajes.pdf">Descargar PDF</a>
     </section>
   </main>
 
@@ -49,6 +41,6 @@
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="../catalogos/shared/flipbook.js?v=standard-viewer-1" defer></script>
+  <script src="../catalogos/shared/flipbook.js?v=compact-viewer-1" defer></script>
 </body>
 </html>

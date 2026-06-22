@@ -33,6 +33,7 @@ function hideStatus() {
 }
 
 function setControlsDisabled(disabled) {
+  if (!els.prev || !els.next) return;
   els.prev.disabled = disabled;
   els.next.disabled = disabled;
 }
@@ -41,8 +42,10 @@ function updateCounter() {
   if (!els.counter || !state.pageCount) return;
 
   els.counter.textContent = `${state.currentPage} / ${state.pageCount}`;
-  els.prev.disabled = state.isRendering || state.currentPage <= 1;
-  els.next.disabled = state.isRendering || state.currentPage >= state.pageCount;
+  if (els.prev && els.next) {
+    els.prev.disabled = state.isRendering || state.currentPage <= 1;
+    els.next.disabled = state.isRendering || state.currentPage >= state.pageCount;
+  }
 }
 
 function getStageSize() {
@@ -99,7 +102,7 @@ async function renderViewer(pageNumber) {
 
   const size = getStageSize();
   const pageWidth = Math.min(size.width, 760);
-  const pageMaxHeight = Math.min(size.height, 760);
+  const pageMaxHeight = Math.min(size.height, 820);
   const spread = document.createElement("div");
   spread.className = "pdf-spread is-single";
 
@@ -169,8 +172,8 @@ async function goToRelativePage(direction) {
   }
 }
 
-els.prev.addEventListener("click", () => goToRelativePage(-1));
-els.next.addEventListener("click", () => goToRelativePage(1));
+els.prev?.addEventListener("click", () => goToRelativePage(-1));
+els.next?.addEventListener("click", () => goToRelativePage(1));
 
 let touchStartX = 0;
 els.stage.addEventListener("touchstart", (event) => {
@@ -183,5 +186,23 @@ els.stage.addEventListener("touchend", (event) => {
   if (Math.abs(delta) < 44) return;
   goToRelativePage(delta > 0 ? -1 : 1);
 }, { passive: true });
+
+els.stage.addEventListener("click", (event) => {
+  if (!state.pageCount || state.isRendering) return;
+  const bounds = els.stage.getBoundingClientRect();
+  const clickX = event.clientX - bounds.left;
+  const direction = clickX > bounds.width / 2 ? 1 : -1;
+  goToRelativePage(direction);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowRight") {
+    goToRelativePage(1);
+  }
+
+  if (event.key === "ArrowLeft") {
+    goToRelativePage(-1);
+  }
+});
 
 initCatalogViewer();
