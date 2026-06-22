@@ -256,6 +256,7 @@ h1 {
 }
 
 .flipbook-stage {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: calc(100svh - 190px);
@@ -266,6 +267,44 @@ h1 {
     radial-gradient(circle at 80% 0%, rgba(108, 92, 231, 0.12), transparent 34%),
     #fff7fb;
   overflow: hidden;
+}
+
+.viewer-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 4;
+  width: clamp(3.2rem, 7vw, 5.25rem);
+  border: 0;
+  background: rgba(255, 234, 243, 0.58);
+  color: var(--color-primary);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.viewer-edge:hover {
+  background: rgba(255, 184, 211, 0.76);
+}
+
+.viewer-edge:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.viewer-edge-left {
+  left: 0;
+}
+
+.viewer-edge-right {
+  right: 0;
+}
+
+.viewer-edge span {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .flipbook {
@@ -298,8 +337,30 @@ h1 {
   background: #fff;
 }
 
-.download-button {
-  justify-self: center;
+.viewer-bottom-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.viewer-mobile-nav {
+  display: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.viewer-mobile-nav:disabled {
+  background: #dfc8d2;
+  cursor: not-allowed;
 }
 
 @keyframes catalogFade {
@@ -433,12 +494,21 @@ h1 {
     padding: 0.25rem;
   }
 
+  .viewer-edge {
+    display: none;
+  }
+
   .pdf-spread {
     align-items: start;
   }
 
   .pdf-page-shell canvas {
     max-height: calc(100svh - 150px);
+  }
+
+  .viewer-mobile-nav {
+    display: inline-grid;
+    place-items: center;
   }
 
   .download-button {

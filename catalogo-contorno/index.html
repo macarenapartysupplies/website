@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de contorno | Macarena Party Supplies</title>
-  <link rel="stylesheet" href="../catalogos/shared/catalogos.css?v=compact-viewer-1">
+  <link rel="stylesheet" href="../catalogos/shared/catalogos.css?v=viewer-arrows-1">
 </head>
 <body>
   <header class="catalog-header">
@@ -23,11 +23,21 @@
   <main class="catalog-shell viewer-shell">
     <section class="flipbook-panel" aria-label="Visor de catálogo de contorno">
       <div class="flipbook-stage" id="flipbookStage">
+        <button class="viewer-edge viewer-edge-left" type="button" id="prevPage" aria-label="Página anterior">
+          <span aria-hidden="true">&lt;</span>
+        </button>
         <div class="catalog-status" id="catalogStatus">Preparando catálogo...</div>
         <div class="flipbook" id="flipbook"></div>
+        <button class="viewer-edge viewer-edge-right" type="button" id="nextPage" aria-label="Página siguiente">
+          <span aria-hidden="true">&gt;</span>
+        </button>
       </div>
 
-      <a class="catalog-button secondary download-button" id="downloadPdf" href="../catalogos/pdfs/contorno.pdf">Descargar PDF</a>
+      <div class="viewer-bottom-actions">
+        <button class="viewer-mobile-nav" type="button" id="prevPageMobile" aria-label="Página anterior">&lt;</button>
+        <a class="catalog-button secondary download-button" id="downloadPdf" href="../catalogos/pdfs/contorno.pdf">Descargar PDF</a>
+        <button class="viewer-mobile-nav" type="button" id="nextPageMobile" aria-label="Página siguiente">&gt;</button>
+      </div>
     </section>
   </main>
 
@@ -41,6 +51,6 @@
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="../catalogos/shared/flipbook.js?v=compact-viewer-1" defer></script>
+  <script src="../catalogos/shared/flipbook.js?v=viewer-arrows-1" defer></script>
 </body>
 </html>

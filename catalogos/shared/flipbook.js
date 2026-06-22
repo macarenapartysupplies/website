@@ -14,6 +14,8 @@ const els = {
   status: document.getElementById("catalogStatus"),
   prev: document.getElementById("prevPage"),
   next: document.getElementById("nextPage"),
+  prevMobile: document.getElementById("prevPageMobile"),
+  nextMobile: document.getElementById("nextPageMobile"),
   counter: document.getElementById("pageCounter"),
   download: document.getElementById("downloadPdf")
 };
@@ -45,6 +47,11 @@ function updateCounter() {
   if (els.prev && els.next) {
     els.prev.disabled = state.isRendering || state.currentPage <= 1;
     els.next.disabled = state.isRendering || state.currentPage >= state.pageCount;
+  }
+
+  if (els.prevMobile && els.nextMobile) {
+    els.prevMobile.disabled = state.isRendering || state.currentPage <= 1;
+    els.nextMobile.disabled = state.isRendering || state.currentPage >= state.pageCount;
   }
 }
 
@@ -174,6 +181,8 @@ async function goToRelativePage(direction) {
 
 els.prev?.addEventListener("click", () => goToRelativePage(-1));
 els.next?.addEventListener("click", () => goToRelativePage(1));
+els.prevMobile?.addEventListener("click", () => goToRelativePage(-1));
+els.nextMobile?.addEventListener("click", () => goToRelativePage(1));
 
 let touchStartX = 0;
 els.stage.addEventListener("touchstart", (event) => {
@@ -188,6 +197,7 @@ els.stage.addEventListener("touchend", (event) => {
 }, { passive: true });
 
 els.stage.addEventListener("click", (event) => {
+  if (event.target.closest("button, a")) return;
   if (!state.pageCount || state.isRendering) return;
   const bounds = els.stage.getBoundingClientRect();
   const clickX = event.clientX - bounds.left;
